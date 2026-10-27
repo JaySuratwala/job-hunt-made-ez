@@ -6,11 +6,11 @@ function App() {
   return (
     <div className="flex w-screen h-screen overflow-hidden bg-[#1e1e2e] font-sans">
       
-      {/* Game Layer (Bottom) */}
-      <div className="flex-1 relative">
+      {/* Game Area (Takes remaining width) */}
+      <div className="flex-1 relative h-full overflow-hidden">
         <GameWrapper />
         
-        {/* UI Overlay (Top) */}
+        {/* UI Title Overlay */}
         <div className="absolute top-4 left-4 pointer-events-none z-10">
           <h1 className="text-4xl font-black text-[#cdd6f4] opacity-50 drop-shadow-md">
             Job Ops
@@ -18,8 +18,8 @@ function App() {
         </div>
       </div>
       
-      {/* Command Centre Sidebar */}
-      <div className="z-20 shadow-2xl">
+      {/* Command Centre Sidebar (Fixed width, clean boundary) */}
+      <div className="w-[420px] h-full z-20 shadow-2xl flex-shrink-0 bg-[#11111b] overflow-y-auto">
         <Sidebar />
       </div>
 

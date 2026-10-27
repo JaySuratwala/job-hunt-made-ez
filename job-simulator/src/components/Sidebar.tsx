@@ -3,16 +3,41 @@ import { useStore } from '../store';
 import { Send, Briefcase, Activity } from 'lucide-react';
 
 export const Sidebar = () => {
-  const { mission, messages, selectedEmployee, addMessage } = useStore();
+  const { mission, messages, selectedEmployee, addMessage, updateEmployeeState } = useStore();
   const [input, setInput] = useState('');
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    const command = input.trim().toLowerCase();
+    if (!command) return;
+
     addMessage('CEO', input);
+
     setTimeout(() => {
-      addMessage('CJO', 'Command acknowledged. Initiating workflows.');
-    }, 1500);
+      if (command.includes('linkedin') || command.includes('post')) {
+        addMessage('CMO', 'On it. Delegating to the LinkedIn Writer to draft a new post regarding your recent triage labs.');
+        updateEmployeeState('cmo-1', 'Working', 'Drafting post on Incident Triage', 'Reviewing SOC lab notes for content...');
+
+        setTimeout(() => {
+          updateEmployeeState('cmo-1', 'Idle', 'Enjoying a break', 'Draft complete.');
+          addMessage('CMO', 'The draft is ready in the output dashboard.');
+        }, 8000);
+      } else if (command.includes('job') || command.includes('soc') || command.includes('find')) {
+        addMessage('CJO', 'Understood. Dispatching the Job Discovery Agent to scrape recent Irish SOC listings.');
+        updateEmployeeState('cjo-1', 'Working', 'Scraping Irish job boards for SOC roles', 'Querying LinkedIn and Indeed for last 24h...');
+
+        setTimeout(() => {
+          updateEmployeeState('cjo-1', 'Idle', 'Enjoying a break', 'Job search complete.');
+          addMessage('CJO', 'Search completed. 5 matching roles added to the dashboard.');
+        }, 8000);
+      } else if (command.includes('resume') || command.includes('ats')) {
+        addMessage('CHRO', 'Reviewing your master resume against the latest target descriptions now.');
+        updateEmployeeState('chro-1', 'Working', 'Optimizing Resume for ATS', 'Comparing SIEM keywords against JD...');
+      } else {
+        addMessage('System', 'Command received. Awaiting backend LLM integration to process complex instructions.');
+      }
+    }, 1000);
+
     setInput('');
   };
 
@@ -54,7 +79,7 @@ export const Sidebar = () => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Direct the C-Suite..."
+            placeholder="Direct the C-Suite (e.g. 'write linkedin post')"
             className="flex-1 bg-[#1e1e2e] border border-[#45475a] rounded p-2 text-sm text-[#cdd6f4] focus:outline-none focus:border-[#89b4fa] placeholder-[#a6adc8]"
           />
           <button type="submit" className="bg-[#89b4fa] p-2 rounded text-[#11111b] hover:bg-[#b4befe] transition-colors">

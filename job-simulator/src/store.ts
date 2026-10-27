@@ -13,7 +13,10 @@ export interface Employee {
   progress: number;
   latestUpdate: string;
   color: string;
-  position: [number, number]; // 2D map pixel coordinates (x, y)
+  position: [number, number]; 
+  idlePosition: [number, number]; 
+  deskPosition: [number, number]; 
+  spriteKey: string;
 }
 
 interface AppState {
@@ -23,47 +26,64 @@ interface AppState {
   messages: { sender: string; text: string; time: string }[];
   selectEmployee: (emp: Employee | null) => void;
   addMessage: (sender: string, text: string) => void;
+  updateEmployeeState: (id: string, state: EmployeeState, task: string, update: string) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
   mission: 'Secure L1 SOC Analyst / Junior Security Analyst in Ireland',
-  employees: [
+ employees: [
+    {
+      id: 'ceo', name: 'Jay Suratwala', role: 'Chief Executive Officer', department: 'Executive', executive: 'CEO',
+      state: 'Idle', currentTask: 'Monitoring C-Suite Operations', progress: 100,
+      latestUpdate: 'Reviewing overall hiring strategy from the Discussion Room.',
+      color: '#f38ba8', 
+      position: [280, 625], // Centered nicely in the Discussion room
+      idlePosition: [280, 625],
+      deskPosition: [280, 625],
+      spriteKey: 'adam'
+    },
     {
       id: 'cjo-1', name: 'Job Discovery Agent', role: 'Vacancy Finder', department: 'Job Intelligence', executive: 'CJO',
-      state: 'Working', currentTask: 'Scraping Irish job boards for SOC roles', progress: 45,
-      latestUpdate: 'Found 12 candidate listings in the last 24h. Filtering duplicates...',
-      color: '#89b4fa', // Catppuccin Sapphire
-      position: [320, 240] 
+      state: 'Idle', currentTask: 'Awaiting orders', progress: 0,
+      latestUpdate: 'Ready to scan Irish job boards.',
+      color: '#89b4fa', 
+      position: [240, 220], 
+      idlePosition: [240, 220],
+      deskPosition: [960, 340], // Clean desk in Operations
+      spriteKey: 'ash'
     },
     {
-      id: 'cjo-2', name: 'Resume Intelligence Analyst', role: 'Profile Extraction', department: 'Job Intelligence', executive: 'CJO',
-      state: 'Completed', currentTask: 'Extract master resume', progress: 100,
-      latestUpdate: 'Parsed TryHackMe SOC Simulator labs and master degree details.',
-      color: '#89b4fa', // Catppuccin Sapphire
-      position: [320, 304] 
-    },
-    {
-      id: 'chro-1', name: 'ATS Optimisation Agent', role: 'ATS Reviewer', department: 'HR', executive: 'CHRO',
-      state: 'Waiting', currentTask: 'Awaiting target Job Description', progress: 0,
-      latestUpdate: 'Ready to compare SIEM/EDR skills against JD.',
-      color: '#a6e3a1', // Catppuccin Green
-      position: [448, 240] 
+      id: 'chro-1', name: 'ATS Optimisation', role: 'ATS Reviewer', department: 'HR', executive: 'CHRO',
+      state: 'Idle', currentTask: 'Awaiting target Job Description', progress: 0,
+      latestUpdate: 'Ready to compare skills.',
+      color: '#a6e3a1', 
+      position: [290, 220], 
+      idlePosition: [290, 220],
+      deskPosition: [1040, 340], // Clean desk in Operations
+      spriteKey: 'lucy'
     },
     {
       id: 'cmo-1', name: 'LinkedIn Writer', role: 'Content Creator', department: 'Marketing', executive: 'CMO',
-      state: 'Researching', currentTask: 'Drafting post on Incident Triage', progress: 60,
-      latestUpdate: 'Structuring post around recent malware sandboxing lab.',
-      color: '#cba6f7', // Catppuccin Mauve
-      position: [448, 304] 
+      state: 'Idle', currentTask: 'Awaiting topics', progress: 0,
+      latestUpdate: 'Ready to draft content.',
+      color: '#cba6f7', 
+      position: [340, 220], 
+      idlePosition: [340, 220],
+      deskPosition: [1120, 340], // Clean desk in Operations
+      spriteKey: 'nancy'
     }
   ],
   selectedEmployee: null,
   messages: [
-    { sender: 'System', text: 'Office initialized. Target: Ireland SOC roles.', time: new Date().toLocaleTimeString() },
-    { sender: 'CJO', text: 'Good morning CEO. The Job Discovery agent is currently scanning for roles posted in the last 24 hours.', time: new Date().toLocaleTimeString() }
+    { sender: 'System', text: 'Office initialized. Target: Ireland SOC roles.', time: new Date().toLocaleTimeString() }
   ],
   selectEmployee: (emp) => set({ selectedEmployee: emp }),
   addMessage: (sender, text) => set((state) => ({ 
     messages: [...state.messages, { sender, text, time: new Date().toLocaleTimeString() }] 
+  })),
+  updateEmployeeState: (id, newState, task, update) => set((state) => ({
+    employees: state.employees.map(emp => 
+      emp.id === id ? { ...emp, state: newState, currentTask: task, latestUpdate: update } : emp
+    )
   }))
 }));
