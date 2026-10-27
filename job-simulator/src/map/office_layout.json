@@ -1,0 +1,428 @@
+{
+  "rooms": {},
+  "chairs": [
+    {
+      "id": "chair_0",
+      "x": 336,
+      "y": 608,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_1",
+      "x": 528,
+      "y": 672,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "left"
+        }
+      ]
+    },
+    {
+      "id": "chair_2",
+      "x": 272,
+      "y": 672,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "right"
+        }
+      ]
+    },
+    {
+      "id": "chair_3",
+      "x": 400,
+      "y": 608,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_4",
+      "x": 560,
+      "y": 384,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_5",
+      "x": 304,
+      "y": 384,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_6",
+      "x": 272,
+      "y": 384,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_7",
+      "x": 592,
+      "y": 384,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_8",
+      "x": 976,
+      "y": 160,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "left"
+        }
+      ]
+    },
+    {
+      "id": "chair_9",
+      "x": 240,
+      "y": 384,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_10",
+      "x": 528,
+      "y": 384,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_11",
+      "x": 496,
+      "y": 384,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_12",
+      "x": 464,
+      "y": 608,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_13",
+      "x": 336,
+      "y": 704,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "up"
+        }
+      ]
+    },
+    {
+      "id": "chair_14",
+      "x": 400,
+      "y": 704,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "up"
+        }
+      ]
+    },
+    {
+      "id": "chair_15",
+      "x": 464,
+      "y": 704,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "up"
+        }
+      ]
+    },
+    {
+      "id": "chair_16",
+      "x": 1200,
+      "y": 544,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "up"
+        }
+      ]
+    },
+    {
+      "id": "chair_17",
+      "x": 1104,
+      "y": 544,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "up"
+        }
+      ]
+    },
+    {
+      "id": "chair_18",
+      "x": 1008,
+      "y": 544,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "up"
+        }
+      ]
+    },
+    {
+      "id": "chair_19",
+      "x": 1200,
+      "y": 448,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_20",
+      "x": 1104,
+      "y": 448,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_21",
+      "x": 1200,
+      "y": 704,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_22",
+      "x": 1104,
+      "y": 704,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_23",
+      "x": 1008,
+      "y": 704,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_24",
+      "x": 1200,
+      "y": 800,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "up"
+        }
+      ]
+    },
+    {
+      "id": "chair_25",
+      "x": 1008,
+      "y": 800,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "up"
+        }
+      ]
+    },
+    {
+      "id": "chair_26",
+      "x": 656,
+      "y": 96,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_27",
+      "x": 688,
+      "y": 96,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_28",
+      "x": 720,
+      "y": 96,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "down"
+        }
+      ]
+    },
+    {
+      "id": "chair_29",
+      "x": 464,
+      "y": 250,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "right"
+        }
+      ]
+    },
+    {
+      "id": "chair_30",
+      "x": 464,
+      "y": 296,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "right"
+        }
+      ]
+    },
+    {
+      "id": "chair_31",
+      "x": 560,
+      "y": 250,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "left"
+        }
+      ]
+    },
+    {
+      "id": "chair_32",
+      "x": 560,
+      "y": 296,
+      "properties": [
+        {
+          "name": "direction",
+          "type": "string",
+          "value": "left"
+        }
+      ]
+    }
+  ],
+  "computers": [
+    {
+      "id": "computer_0",
+      "x": 1200,
+      "y": 512
+    },
+    {
+      "id": "computer_1",
+      "x": 1104,
+      "y": 512
+    },
+    {
+      "id": "computer_2",
+      "x": 1008,
+      "y": 512
+    },
+    {
+      "id": "computer_3",
+      "x": 1008,
+      "y": 768
+    },
+    {
+      "id": "computer_4",
+      "x": 1200,
+      "y": 768
+    }
+  ]
+}
