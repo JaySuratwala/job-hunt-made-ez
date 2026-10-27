@@ -9,7 +9,7 @@ export default class Item extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this)
     scene.physics.add.existing(this, true)
 
-    // Default origin for Tiled bottom-left alignment
-    this.setOrigin(0.5, 1)
+    // Align with Tiled's bottom-left object origin coordinate system
+    this.setOrigin(0, 1)
   }
 }
