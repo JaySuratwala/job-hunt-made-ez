@@ -5,6 +5,7 @@ import Whiteboard from '../items/Whiteboard'
 import VendingMachine from '../items/VendingMachine'
 import Player from '../characters/Players'
 import NPC from '../characters/NPC'
+import officeLayout from '../map/office_layout.json'
 
 export const OFFICE_LAYOUT: Record<string, any> = {
   rooms: {},
@@ -35,7 +36,7 @@ export default class JobOpsScene extends Phaser.Scene {
     this.load.spritesheet('vendingmachines', 'assets/items/vendingmachine.png', { frameWidth: 32, frameHeight: 64 })
 
     this.load.atlas('adam', 'assets/character/adam.png', 'assets/character/adam.json')
-    this.load.atlas('emma', 'assets/character/emma.png', 'assets/character/emma.json')
+    // this.load.atlas('emma', 'assets/character/emma.png', 'assets/character/emma.json')
   }
 
   create() {
@@ -105,18 +106,37 @@ export default class JobOpsScene extends Phaser.Scene {
     const genericObjectsOnCollide = this.addGroupFromTiled('GenericObjectsOnCollide', 'generic', 'Generic', true)
     const basement = this.addGroupFromTiled('Basement', 'basement', 'Basement', true)
 
-    // --- SPAWN THE CEO (IN ARCHIVES) ---
+
+// --- AUTO-SPAWN NPCS AT OPERATIONS DESKS ---
+// --- SPAWN THE CEO (YOU) IN ARCHIVES ---
+    // --- SPAWN THE CEO (YOU) IN ARCHIVES ---
     this.myPlayer = new Player(this, 0, 0, 'adam')
-    const archiveChair = chairs.getChildren().find((c: any) => c.x > 900 && c.y < 300) as Chair
+    
+    // Find the Archives chair (top right room)
+    const archiveChair = (chairs.getChildren() as Chair[]).find(
+      (c) => c.x > 900 && c.y < 300
+    )
     if (archiveChair) {
-      this.myPlayer.setPosition(archiveChair.x, archiveChair.y)
-      this.myPlayer.sit('left')
+      archiveChair.isOccupied = true
+      this.myPlayer.setPosition(archiveChair.x, archiveChair.y - 10)
+      this.myPlayer.sit(archiveChair.itemDirection || 'left')
     }
 
-    // --- SPAWN NPCS ---
-    new NPC(this, 1100, 360, 'adam', 'Adam_idle_anim_1.png', 'Alex (SOC Lead)')
-    new NPC(this, 1190, 480, 'adam', 'Adam_idle_anim_1.png', 'Sarah (Analyst)')
-    new NPC(this, 510, 600, 'adam', 'Adam_idle_anim_1.png', 'Mentor')
+    // --- AUTO-SPAWN NPCS AT OPERATIONS DESKS ---
+    // Grab the orange chairs in the Operations room (around x > 1000, y > 350 & y < 500)
+    const opChairs = (chairs.getChildren() as Chair[]).filter(
+      (c) => c.x > 1000 && c.y > 350 && c.y < 500
+    )
+
+    if (opChairs.length >= 2) {
+      // Alex seated at the first Operations chair
+      opChairs[0].isOccupied = true
+      new NPC(this, opChairs[0].x, opChairs[0].y - 5, 'adam', ' ', opChairs[0].itemDirection || 'up')
+
+      // Sarah seated at the second Operations chair
+      opChairs[1].isOccupied = true
+      new NPC(this, opChairs[1].x, opChairs[1].y - 5, 'adam', '  ', opChairs[1].itemDirection || 'up')
+    }
 
     // --- PHYSICS COLLISIONS ---
     if (groundLayer) this.physics.add.collider(this.myPlayer, groundLayer)
