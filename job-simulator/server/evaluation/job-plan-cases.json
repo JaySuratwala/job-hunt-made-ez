@@ -1,0 +1,92 @@
+[
+  {
+    "id": "soc-ireland-24h",
+    "request": "Find five new entry-level SOC Analyst vacancies in Ireland published in the previous 24 hours.",
+    "expected": {
+      "jobTitles": ["SOC Analyst"],
+      "locations": ["Ireland"],
+      "keywords": ["entry-level", "previous 24 hours"]
+    }
+  },
+  {
+    "id": "junior-cloud-security-berlin",
+    "request": "Search for junior cloud security engineer roles in Berlin, Germany. AWS experience is preferred.",
+    "expected": {
+      "jobTitles": ["Cloud Security Engineer"],
+      "locations": ["Berlin", "Germany"],
+      "keywords": ["junior", "AWS"]
+    }
+  },
+  {
+    "id": "graduate-analyst-cork",
+    "request": "Find graduate cybersecurity analyst jobs around Cork, Ireland, with no more than one year of experience.",
+    "expected": {
+      "jobTitles": ["Cybersecurity Analyst"],
+      "locations": ["Cork", "Ireland"],
+      "keywords": ["graduate", "one year of experience"]
+    }
+  },
+  {
+    "id": "remote-incident-response",
+    "request": "Look for remote entry-level incident response analyst openings in the European Union.",
+    "expected": {
+      "jobTitles": ["Incident Response Analyst"],
+      "locations": ["European Union", "Remote"],
+      "keywords": ["entry-level"]
+    }
+  },
+  {
+    "id": "network-security-london",
+    "request": "Search London for junior network security analyst jobs requiring CCNA.",
+    "expected": {
+      "jobTitles": ["Network Security Analyst"],
+      "locations": ["London"],
+      "keywords": ["junior", "CCNA"]
+    }
+  },
+  {
+    "id": "application-security-amsterdam",
+    "request": "Find associate application security engineer roles in Amsterdam. Include only permanent positions.",
+    "expected": {
+      "jobTitles": ["Application Security Engineer"],
+      "locations": ["Amsterdam"],
+      "keywords": ["associate", "permanent"]
+    }
+  },
+  {
+    "id": "helpdesk-to-soc-prague",
+    "request": "Find Tier 1 SOC analyst opportunities in Prague that accept candidates transitioning from IT help desk.",
+    "expected": {
+      "jobTitles": ["SOC Analyst"],
+      "locations": ["Prague"],
+      "keywords": ["Tier 1", "IT help desk"]
+    }
+  },
+  {
+    "id": "security-operations-remote-uk",
+    "request": "Search the UK for junior security operations analyst jobs that are fully remote.",
+    "expected": {
+      "jobTitles": ["Security Operations Analyst"],
+      "locations": ["UK", "Remote"],
+      "keywords": ["junior", "fully remote"]
+    }
+  },
+  {
+    "id": "threat-intelligence-dublin",
+    "request": "Find entry-level threat intelligence analyst roles in Dublin. Experience with OSINT is a plus.",
+    "expected": {
+      "jobTitles": ["Threat Intelligence Analyst"],
+      "locations": ["Dublin"],
+      "keywords": ["entry-level", "OSINT"]
+    }
+  },
+  {
+    "id": "iam-graduate-stockholm",
+    "request": "Search Stockholm for graduate identity and access management analyst roles with Swedish language skills.",
+    "expected": {
+      "jobTitles": ["Identity and Access Management Analyst"],
+      "locations": ["Stockholm"],
+      "keywords": ["graduate", "Swedish"]
+    }
+  }
+]

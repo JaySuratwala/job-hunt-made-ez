@@ -8,11 +8,10 @@ export default class Chair extends Item {
 
   constructor(scene: Phaser.Scene, x: number, y: number, texture: string, frame?: string | number) {
     super(scene, x, y, texture, frame)
-    this.itemType = ItemType.CHAIR as unknown as string
+    this.itemType = ItemType.CHAIR
     
     // Lock the origin so the chair base aligns perfectly with the desk tile
     this.setOrigin(0.5, 0.75)
-    
     // Adjust physics body for the chair
     const body = this.body as Phaser.Physics.Arcade.Body
     if (body) {

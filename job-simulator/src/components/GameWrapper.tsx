@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import JobOpsScene from '../game/Scene';
 
@@ -33,16 +33,22 @@ export const GameWrapper = () => {
 
     const handleResize = () => {
       if (phaserGame.current && gameRef.current) {
-        phaserGame.current.scale.resize(
-          gameRef.current.clientWidth,
-          gameRef.current.clientHeight
-        );
+        const width = Math.max(1, gameRef.current.clientWidth)
+        const height = Math.max(1, gameRef.current.clientHeight)
+        phaserGame.current.scale.resize(width, height)
+        phaserGame.current.canvas.style.width = `${width}px`
+        phaserGame.current.canvas.style.height = `${height}px`
+        phaserGame.current.canvas.style.marginLeft = '0'
+        phaserGame.current.canvas.style.marginTop = '0'
       }
     };
 
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(gameRef.current);
     window.addEventListener('resize', handleResize);
 
     return () => {
+      resizeObserver.disconnect();
       window.removeEventListener('resize', handleResize);
       phaserGame.current?.destroy(true);
       phaserGame.current = null;

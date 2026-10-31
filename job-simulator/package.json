@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node --env-file-if-exists=.env server/index.mjs",
+    "test:server": "node --test server/app.test.mjs server/research.test.mjs server/database.test.mjs",
+    "benchmark:models": "node --env-file-if-exists=.env server/evaluation/model-benchmark.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
