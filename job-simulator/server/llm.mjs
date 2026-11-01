@@ -1,5 +1,8 @@
 const MAX_MESSAGE_LENGTH = 6000
 const MAX_MESSAGES = 20
+const OLLAMA_CONTEXT_LENGTH = 6144
+const OLLAMA_TIMEOUT_MS = 120000
+const REMOTE_AI_TIMEOUT_MS = 30000
 
 export const createLLMProvider = (
   {
@@ -17,7 +20,7 @@ export const createLLMProvider = (
   return {
     configured,
     provider: isOllama ? 'ollama' : provider,
-    async complete({ executive, messages }) {
+    async complete({ executive, messages, responseFormat }) {
       if (!configured) {
         const error = new Error('AI is not configured. For local Ollama, set AI_PROVIDER=ollama and AI_MODEL. For an OpenAI-compatible provider, set AI_BASE_URL, AI_API_KEY, and AI_MODEL.')
         error.status = 503
@@ -87,7 +90,8 @@ export const createLLMProvider = (
                 messages: [systemMessage, ...messages.map(({ role, content }) => ({ role, content: content.trim() }))],
                 stream: false,
                 think: false,
-                options: { temperature: 0.2, num_predict: 1000 },
+                ...(responseFormat ? { format: responseFormat } : {}),
+                options: { temperature: 0.2, num_predict: 1000, num_ctx: OLLAMA_CONTEXT_LENGTH },
               }
             : {
                 model,
@@ -95,7 +99,7 @@ export const createLLMProvider = (
                 temperature: 0.2,
                 max_tokens: 1000,
               }),
-          signal: AbortSignal.timeout(30000),
+          signal: AbortSignal.timeout(isOllama ? OLLAMA_TIMEOUT_MS : REMOTE_AI_TIMEOUT_MS),
         })
       } catch (cause) {
         const error = new Error(cause.name === 'TimeoutError' ? 'The AI provider request timed out.' : 'The AI provider could not be reached.')

@@ -137,6 +137,91 @@ test('assistant uses persisted conversation and candidate context across request
   }, { aiProvider })
 })
 
+test('automatic command routing uses a constrained C-suite classification schema', async () => {
+  const expectedRoute = {
+    kind: 'task',
+    executive: 'CHRO',
+    title: 'Review supplied resume',
+    description: 'Review the provided resume excerpt and identify evidence-backed improvements.',
+  }
+  const requests = []
+  const aiProvider = {
+    configured: true,
+    provider: 'ollama',
+    async complete(request) {
+      requests.push(request)
+      return JSON.stringify(expectedRoute)
+    },
+  }
+  await withServer(async ({ baseUrl }) => {
+    const response = await jsonRequest(baseUrl, '/api/command/route', {
+      method: 'POST',
+      body: { message: 'Please review my resume and suggest improvements.' },
+    })
+    assert.equal(response.response.status, 200)
+    assert.deepEqual(response.body.data, expectedRoute)
+    assert.deepEqual(requests[0].responseFormat.properties.executive.enum, ['CJO', 'CHRO', 'CMO', 'CLO', 'CTO', 'CFO'])
+    assert.deepEqual(requests[0].responseFormat.properties.kind.enum, ['conversation', 'job-search', 'linkedin-draft', 'task'])
+
+    const invalidMessage = await jsonRequest(baseUrl, '/api/command/route', {
+      method: 'POST',
+      body: { message: 'x' },
+    })
+    assert.equal(invalidMessage.response.status, 400)
+  }, { aiProvider })
+})
+
+test('automatic command routing retries one malformed assignment with validation feedback', async () => {
+  const responses = [
+    { kind: 'job-search', executive: 'CJO', title: 'Find jobs', description: null },
+    { kind: 'job-search', executive: 'CJO', title: null, description: null },
+  ]
+  const requests = []
+  await withServer(async ({ baseUrl }) => {
+    const response = await jsonRequest(baseUrl, '/api/command/route', {
+      method: 'POST',
+      body: { message: 'Find jobs.' },
+    })
+    assert.equal(response.response.status, 200)
+    assert.deepEqual(response.body.data, responses[1])
+    assert.equal(requests.length, 2)
+    assert.match(requests[1].messages[0].content, /failed validation/)
+    assert.match(requests[1].messages[0].content, /Non-task routes require both "title" and "description" to be null/)
+    assert.deepEqual(requests[1].responseFormat, requests[0].responseFormat)
+  }, {
+    aiProvider: {
+      configured: true,
+      async complete(request) {
+        requests.push(request)
+        return JSON.stringify(responses[requests.length - 1])
+      },
+    },
+  })
+})
+
+test('automatic command routing rejects invalid model assignments', async () => {
+  let attempts = 0
+  await withServer(async ({ baseUrl }) => {
+    const invalid = await jsonRequest(baseUrl, '/api/command/route', {
+      method: 'POST',
+      body: { message: 'Assign this request to an executive.' },
+    })
+    assert.equal(invalid.response.status, 502)
+    assert.match(invalid.body.error, /invalid assignment after one correction attempt/)
+    assert.equal(attempts, 2)
+    const tasks = await jsonRequest(baseUrl, '/api/tasks')
+    assert.deepEqual(tasks.body.data, [])
+  }, {
+    aiProvider: {
+      configured: true,
+      async complete() {
+        attempts += 1
+        return JSON.stringify({ kind: 'task', executive: 'CEO', title: 'Invalid', description: 'Invalid route.' })
+      },
+    },
+  })
+})
+
 test('resume intelligence only persists quote-supported facts from local Ollama', async () => {
   const resumeText = 'Junior analyst with 1 year of experience. Monitored SIEM alerts and documented incidents.'
   const aiProvider = {
@@ -322,6 +407,82 @@ test('tasks enforce dependencies before completion and approvals can be decided 
     })
     assert.equal(duplicateDecision.response.status, 409)
   })
+})
+
+test('task, workflow, and approval list endpoints match the frontend contracts', async () => {
+  const jobResearch = {
+    configured: true,
+    async research(_query, { onProgress }) {
+      for (const stage of ['planning', 'discovery', 'crawling', 'extraction', 'verification', 'qualification', 'ranking']) {
+        await onProgress({ stage, message: `${stage} complete.` })
+      }
+      return {
+        plan: { jobTitles: ['SOC Analyst'], locations: ['Ireland'], keywords: [] },
+        queries: ['SOC Analyst Ireland'],
+        sourcesReviewed: 0,
+        sources: [],
+        jobs: [],
+        warnings: [],
+        requiresHumanReview: true,
+      }
+    },
+  }
+  await withServer(async ({ baseUrl }) => {
+    const task = await jsonRequest(baseUrl, '/api/tasks', {
+      method: 'POST',
+      body: { title: 'Review search', description: 'Check the plan.', employeeId: 'cjo-1', executive: 'CJO' },
+    })
+    assert.equal(task.response.status, 201)
+    const approval = await jsonRequest(baseUrl, '/api/approvals', {
+      method: 'POST',
+      body: { title: 'Review draft', description: 'Confirm before use.', kind: 'linkedin-draft' },
+    })
+    assert.equal(approval.response.status, 201)
+    const workflow = await jsonRequest(baseUrl, '/api/workflows/research', {
+      method: 'POST',
+      body: { query: 'Find SOC Analyst jobs in Ireland' },
+    })
+    assert.equal(workflow.response.status, 202)
+    assert.deepEqual(workflow.body.data.warnings, [])
+
+    const contracts = [
+      {
+        path: '/api/tasks',
+        required: ['id', 'title', 'description', 'employeeId', 'executive', 'status', 'progress', 'dependencies', 'output', 'error', 'createdAt', 'updatedAt', 'events'],
+        validRecord: (record) =>
+          ['Pending', 'Ready', 'Working', 'Completed', 'Blocked', 'Failed', 'Skipped'].includes(record.status) &&
+          typeof record.progress === 'number' &&
+          Array.isArray(record.dependencies) &&
+          Array.isArray(record.events),
+      },
+      {
+        path: '/api/workflows',
+        required: ['id', 'kind', 'query', 'status', 'currentAction', 'taskIds', 'warnings', 'createdAt', 'updatedAt'],
+        validRecord: (record) =>
+          typeof record.status === 'string' &&
+          Array.isArray(record.taskIds) &&
+          Array.isArray(record.warnings) &&
+          record.warnings.every((warning) => typeof warning === 'string'),
+      },
+      {
+        path: '/api/approvals',
+        required: ['id', 'title', 'description', 'kind', 'status', 'createdAt'],
+        validRecord: (record) =>
+          ['demo-shortlist', 'linkedin-draft', 'research-results'].includes(record.kind) &&
+          ['Pending', 'Approved', 'Rejected'].includes(record.status),
+      },
+    ]
+    for (const contract of contracts) {
+      const response = await jsonRequest(baseUrl, contract.path)
+      assert.equal(response.response.status, 200)
+      assert.ok(Array.isArray(response.body.data))
+      assert.ok(response.body.data.length > 0)
+      assert.ok(response.body.data.every((record) =>
+        contract.required.every((field) => Object.hasOwn(record, field)) &&
+        contract.validRecord(record),
+      ), `${contract.path} returned a record outside its frontend contract`)
+    }
+  }, { jobResearch })
 })
 
 test('demo workflows and task execution use persisted server IDs and enforce dependencies', async () => {

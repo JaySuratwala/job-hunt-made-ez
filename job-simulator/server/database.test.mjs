@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { DatabaseSync } from 'node:sqlite'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, test } from 'node:test'
@@ -40,6 +41,7 @@ test('SQLite storage persists changes across close and reopen and rolls back fai
       status: 'CompletedWithWarnings',
       query: 'SOC Analyst Ireland',
       searchQueries: ['SOC Analyst Ireland'],
+      warnings: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
@@ -108,5 +110,32 @@ test('SQLite storage migrates legacy JSON and preserves default profile fields',
     assert.deepEqual(migrated.profile.resumeEvidence, [])
     assert.equal(migrated.jobs[0].id, 'legacy-job')
     database.close()
+  })
+})
+
+test('SQLite migrates existing workflow rows missing warnings without changing their data', async () => {
+  await withDirectory(async (dataDirectory) => {
+    const database = await openJobOpsDatabase({ dataDirectory, initialData })
+    const workflow = {
+      id: 'legacy-workflow',
+      status: 'Failed',
+      query: 'A prior search request',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      error: 'Prior workflow error',
+    }
+    database.save({ ...database.read(), workflows: [workflow] })
+    database.close()
+
+    const sqlite = new DatabaseSync(join(dataDirectory, 'job-ops.sqlite'))
+    const stored = JSON.parse(sqlite.prepare('SELECT payload FROM workflow_runs WHERE id = ?').get(workflow.id).payload)
+    delete stored.warnings
+    sqlite.prepare('UPDATE workflow_runs SET payload = ? WHERE id = ?').run(JSON.stringify(stored), workflow.id)
+    sqlite.prepare("DELETE FROM schema_metadata WHERE key = 'workflow_warnings_v1'").run()
+    sqlite.close()
+
+    const migrated = await openJobOpsDatabase({ dataDirectory, initialData })
+    assert.deepEqual(migrated.read().workflows, [{ ...stored, warnings: [] }])
+    migrated.close()
   })
 })

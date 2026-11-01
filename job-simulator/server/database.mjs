@@ -4,6 +4,8 @@ import { join } from 'node:path'
 
 const serialize = (value) => JSON.stringify(value)
 const deserialize = (value) => JSON.parse(value)
+const normalizeWorkflow = (workflow) =>
+  Object.hasOwn(workflow, 'warnings') ? workflow : { ...workflow, warnings: [] }
 const uniqueJobs = (jobs = []) => {
   const ids = new Set()
   const sourceUrls = new Set()
@@ -122,6 +124,20 @@ const readRows = (db, table) => db.prepare(`SELECT payload FROM ${table}`).all()
 export const openJobOpsDatabase = async ({ dataDirectory, initialData }) => {
   const db = new DatabaseSync(join(dataDirectory, 'job-ops.sqlite'))
   createSchema(db)
+  const workflowWarningsMigration = db.prepare("SELECT value FROM schema_metadata WHERE key = 'workflow_warnings_v1'").get()
+  if (!workflowWarningsMigration) {
+    const migrateWorkflowWarnings = transaction(db, () => {
+      const updateWorkflow = db.prepare('UPDATE workflow_runs SET payload = ? WHERE id = ?')
+      for (const { id, payload } of db.prepare('SELECT id, payload FROM workflow_runs').all()) {
+        const workflow = deserialize(payload)
+        if (!Object.hasOwn(workflow, 'warnings')) {
+          updateWorkflow.run(serialize(normalizeWorkflow(workflow)), id)
+        }
+      }
+      db.prepare("INSERT INTO schema_metadata (key, value) VALUES ('workflow_warnings_v1', '1')").run()
+    })
+    migrateWorkflowWarnings()
+  }
   const migration = db.prepare("SELECT value FROM schema_metadata WHERE key = 'legacy_json_migrated'").get()
 
   if (!migration) {
@@ -200,7 +216,8 @@ export const openJobOpsDatabase = async ({ dataDirectory, initialData }) => {
         VALUES (?, ?, ?, ?, ?)
       `)
       for (const workflow of data.workflows ?? []) {
-        insertWorkflow.run(workflow.id, workflow.status, workflow.query, workflow.createdAt, workflow.updatedAt, serialize(workflow))
+        const normalizedWorkflow = normalizeWorkflow(workflow)
+        insertWorkflow.run(normalizedWorkflow.id, normalizedWorkflow.status, normalizedWorkflow.query, normalizedWorkflow.createdAt, normalizedWorkflow.updatedAt, serialize(normalizedWorkflow))
         for (const [index, query] of (workflow.searchQueries ?? []).entries()) {
           insertSearch.run(`${workflow.id}:${index}`, workflow.id, query, workflow.updatedAt, serialize({ query }))
         }
@@ -225,7 +242,7 @@ export const openJobOpsDatabase = async ({ dataDirectory, initialData }) => {
     jobs: readRows(db, 'jobs'),
     tasks: readRows(db, 'agent_tasks').map((task) => ({ ...task, events: Array.isArray(task.events) ? task.events : [] })),
     approvals: readRows(db, 'approvals'),
-    workflows: readRows(db, 'workflow_runs'),
+    workflows: readRows(db, 'workflow_runs').map(normalizeWorkflow),
     applications: readRows(db, 'application_history'),
   })
 
@@ -289,9 +306,10 @@ export const openJobOpsDatabase = async ({ dataDirectory, initialData }) => {
       VALUES (?, ?, ?, ?, ?)
     `)
     for (const workflow of data.workflows ?? []) {
-      insertWorkflow.run(workflow.id, workflow.status, workflow.query, workflow.createdAt, workflow.updatedAt, serialize(workflow))
-      for (const [index, query] of (workflow.searchQueries ?? []).entries()) {
-        insertSearch.run(`${workflow.id}:${index}`, workflow.id, query, workflow.updatedAt, serialize({ query }))
+      const normalizedWorkflow = normalizeWorkflow(workflow)
+      insertWorkflow.run(normalizedWorkflow.id, normalizedWorkflow.status, normalizedWorkflow.query, normalizedWorkflow.createdAt, normalizedWorkflow.updatedAt, serialize(normalizedWorkflow))
+      for (const [index, query] of (normalizedWorkflow.searchQueries ?? []).entries()) {
+        insertSearch.run(`${normalizedWorkflow.id}:${index}`, normalizedWorkflow.id, query, normalizedWorkflow.updatedAt, serialize({ query }))
       }
     }
     const insertApplication = db.prepare(`

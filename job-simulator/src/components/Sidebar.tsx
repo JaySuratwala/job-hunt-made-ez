@@ -40,6 +40,31 @@ type ResearchWorkflow = {
   result?: { jobs: DemoJob[]; sourcesReviewed: number; warnings: string[] }
 }
 
+type CommandRoute = {
+  kind: 'conversation' | 'job-search' | 'linkedin-draft' | 'task'
+  executive: 'CJO' | 'CHRO' | 'CMO' | 'CLO' | 'CTO' | 'CFO'
+  title: string | null
+  description: string | null
+}
+
+const isCommandExecutive = (value: string): value is CommandRoute['executive'] =>
+  ['CJO', 'CHRO', 'CMO', 'CLO', 'CTO', 'CFO'].includes(value)
+
+const isCommandRoute = (value: unknown): value is CommandRoute =>
+  typeof value === 'object' &&
+  value !== null &&
+  'kind' in value &&
+  ['conversation', 'job-search', 'linkedin-draft', 'task'].includes(String(value.kind)) &&
+  'executive' in value &&
+  ['CJO', 'CHRO', 'CMO', 'CLO', 'CTO', 'CFO'].includes(String(value.executive)) &&
+  'title' in value &&
+  (value.title === null || typeof value.title === 'string') &&
+  'description' in value &&
+  (value.description === null || typeof value.description === 'string') &&
+  (value.kind !== 'task' ||
+    (typeof value.title === 'string' && value.title.trim().length > 0 &&
+      typeof value.description === 'string' && value.description.trim().length > 0))
+
 const panels: { name: Panel; icon: typeof Activity }[] = [
   { name: 'Command', icon: Activity },
   { name: 'Profile', icon: UserRound },
@@ -219,6 +244,7 @@ export const Sidebar = ({ chatOnlyMode, onToggleChatOnlyMode, onCollapse }: Side
     syncServerData,
   } = useStore()
   const [input, setInput] = useState('')
+  const [assignmentMode, setAssignmentMode] = useState<'auto' | 'manual'>('auto')
   const commandContentRef = useRef<HTMLElement>(null)
   const [nameDraft, setNameDraft] = useState(playerName)
   const [editingName, setEditingName] = useState(false)
@@ -239,7 +265,7 @@ export const Sidebar = ({ chatOnlyMode, onToggleChatOnlyMode, onCollapse }: Side
   const activeTasks = tasks.filter((task) => task.status === 'Ready' || task.status === 'Blocked').length
   const pendingApprovals = approvals.filter((approval) => approval.status === 'Pending').length
   const hasRunningTasks = tasks.some((task) => task.status === 'Working')
-  const activePanel = chatOnlyMode ? 'Command' : panel
+  const activePanel = panel
 
   useEffect(() => {
     if (activePanel !== 'Command') return
@@ -445,8 +471,40 @@ export const Sidebar = ({ chatOnlyMode, onToggleChatOnlyMode, onCollapse }: Side
     if (!text) return
 
     setInput('')
+    let executive: CommandRoute['executive'] = assignmentMode === 'manual' &&
+      isCommandExecutive(selectedExecutive)
+      ? selectedExecutive
+      : 'CJO'
+    let commandRoute: CommandRoute | null = null
     let conversationMessageId: string | undefined
+    setCommunicatingExecutive(assignmentMode === 'auto' ? 'Auto-routing' : executive)
     try {
+      if (assignmentMode === 'auto') {
+        const routeResponse = await fetch('/api/command/route', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ message: text }),
+        })
+        const routePayload: unknown = await routeResponse.json()
+        if (!routeResponse.ok) {
+          const errorMessage =
+            typeof routePayload === 'object' &&
+            routePayload !== null &&
+            'error' in routePayload &&
+            typeof routePayload.error === 'string'
+              ? routePayload.error
+              : `Automatic routing failed (${routeResponse.status}).`
+          throw new Error(errorMessage)
+        }
+        if (typeof routePayload !== 'object' || routePayload === null ||
+          !('data' in routePayload) || !isCommandRoute(routePayload.data)) {
+          throw new Error('The local API returned an invalid command assignment.')
+        }
+        commandRoute = routePayload.data
+        executive = commandRoute.executive
+        setCommunicatingExecutive(executive)
+      }
+
       const savedMessageResponse = await fetch('/api/conversation/messages', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -454,7 +512,7 @@ export const Sidebar = ({ chatOnlyMode, onToggleChatOnlyMode, onCollapse }: Side
           role: 'user',
           sender: playerName,
           text,
-          executive: selectedExecutive,
+          executive,
         }),
       })
       const savedMessagePayload: unknown = await savedMessageResponse.json()
@@ -479,23 +537,61 @@ export const Sidebar = ({ chatOnlyMode, onToggleChatOnlyMode, onCollapse }: Side
       replaceMessages([...useStore.getState().messages, savedMessagePayload.data])
     } catch (error) {
       addMessage(playerName, text)
-      addMessage('System', `This message is saved only in this browser; local chat memory could not be updated: ${error instanceof Error ? error.message : 'unknown API error'}`)
+      addMessage('System', `Could not route or save this command: ${error instanceof Error ? error.message : 'unknown API error'}`)
+      setCommunicatingExecutive(null)
+      return
     }
     const command = text.toLowerCase()
-    setCommunicatingExecutive(selectedExecutive)
 
     try {
-      if (selectedExecutive === 'CJO' && /\b(job|jobs|soc|vacanc|search|find)\b/.test(command)) {
+      if (commandRoute?.kind === 'job-search' ||
+        (!commandRoute && executive === 'CJO' && /\b(job|jobs|soc|vacanc|search|find)\b/.test(command))) {
         if (/\bdemo\b/.test(command)) await createDemoJobWorkflow()
         else await researchJobs(text)
-      } else if (selectedExecutive === 'CMO' && /\b(linkedin|post|content|draft)\b/.test(command)) {
+      } else if (commandRoute?.kind === 'linkedin-draft' ||
+        (!commandRoute && executive === 'CMO' && /\b(linkedin|post|content|draft)\b/.test(command))) {
         await createLinkedInApproval()
+      } else if (commandRoute?.kind === 'task' && commandRoute.title && commandRoute.description) {
+        const employeeId = `exec-${executive.toLowerCase()}`
+        const response = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            title: commandRoute.title,
+            description: commandRoute.description,
+            employeeId,
+            executive,
+          }),
+        })
+        const payload: unknown = await response.json()
+        if (
+          !response.ok ||
+          typeof payload !== 'object' ||
+          payload === null ||
+          !('data' in payload) ||
+          typeof payload.data !== 'object' ||
+          payload.data === null ||
+          !('id' in payload.data) ||
+          typeof payload.data.id !== 'string'
+        ) {
+          const errorMessage =
+            typeof payload === 'object' &&
+            payload !== null &&
+            'error' in payload &&
+            typeof payload.error === 'string'
+              ? payload.error
+              : `Task assignment failed (${response.status}).`
+          throw new Error(errorMessage)
+        }
+        await syncServerData()
+        addMessage(executive, `I assigned “${commandRoute.title}” to the ${executive} executive and started the bounded local task. No external actions are taken.`)
+        await runTask(payload.data.id)
       } else {
         try {
           const response = await fetch('/api/assistant/message', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ executive: selectedExecutive, message: text, conversationMessageId }),
+            body: JSON.stringify({ executive, message: text, conversationMessageId }),
           })
           const payload: unknown = await response.json()
           if (!response.ok) {
@@ -522,7 +618,7 @@ export const Sidebar = ({ chatOnlyMode, onToggleChatOnlyMode, onCollapse }: Side
           if ('assistantMessage' in payload.data && isChatMessage(payload.data.assistantMessage)) {
             replaceMessages([...useStore.getState().messages, payload.data.assistantMessage])
           } else {
-            addMessage(selectedExecutive, payload.data.content)
+            addMessage(executive, payload.data.content)
           }
         } catch (error) {
           addMessage('System', error instanceof Error ? error.message : 'The AI request failed.')
@@ -662,7 +758,7 @@ export const Sidebar = ({ chatOnlyMode, onToggleChatOnlyMode, onCollapse }: Side
         </form>
       </header>
 
-      {!chatOnlyMode && <nav aria-label="Command centre panels" className="flex shrink-0 gap-1 overflow-x-auto border-b border-[#313244] bg-[#11111b] p-2">
+      <nav aria-label="Command centre panels" className="flex shrink-0 gap-1 overflow-x-auto border-b border-[#313244] bg-[#11111b] p-2">
         {panels.map(({ name, icon: Icon }) => (
           <button
             key={name}
@@ -680,7 +776,7 @@ export const Sidebar = ({ chatOnlyMode, onToggleChatOnlyMode, onCollapse }: Side
             )}
           </button>
         ))}
-      </nav>}
+      </nav>
 
       {selectedEmployee && !chatOnlyMode && (
         <section className="border-b border-[#313244] bg-[#313244]/50 p-3" aria-label="Selected employee details">
@@ -717,13 +813,21 @@ export const Sidebar = ({ chatOnlyMode, onToggleChatOnlyMode, onCollapse }: Side
         {activePanel === 'Command' && (
           <section aria-label="Executive conversation">
             <div className="mb-3 flex items-center justify-between">
-              <label htmlFor="executive" className="text-xs text-[#a6adc8]">Message executive</label>
+              <label htmlFor="executive" className="text-xs text-[#a6adc8]">Assign command</label>
               <select
                 id="executive"
-                value={selectedExecutive}
-                onChange={(event) => selectExecutive(event.target.value)}
+                value={assignmentMode === 'auto' ? 'Auto' : selectedExecutive}
+                onChange={(event) => {
+                  if (event.target.value === 'Auto') {
+                    setAssignmentMode('auto')
+                  } else {
+                    setAssignmentMode('manual')
+                    selectExecutive(event.target.value)
+                  }
+                }}
                 className="rounded border border-[#45475a] bg-[#1e1e2e] px-2 py-1 text-xs text-[#cdd6f4] focus:outline-none focus:ring-1 focus:ring-[#89b4fa]"
               >
+                <option value="Auto">Auto-assign</option>
                 {['CJO', 'CMO', 'CHRO', 'CLO', 'CTO', 'CFO'].map((executive) => (
                   <option key={executive} value={executive}>{executive}</option>
                 ))}
@@ -1053,15 +1157,15 @@ export const Sidebar = ({ chatOnlyMode, onToggleChatOnlyMode, onCollapse }: Side
               type="text"
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              placeholder={`Message ${selectedExecutive} (e.g. "find jobs")`}
-              aria-label={`Message ${selectedExecutive}`}
+              placeholder={`Message Command Centre (e.g. "find jobs")`}
+              aria-label="Message Command Centre"
               className="min-w-0 flex-1 rounded border border-[#45475a] bg-[#1e1e2e] p-2 text-sm text-[#cdd6f4] placeholder-[#a6adc8] focus:border-[#89b4fa] focus:outline-none"
             />
             <button type="submit" aria-label="Send message" className="rounded bg-[#89b4fa] p-2 text-[#11111b] transition-colors hover:bg-[#b4befe]">
               <Send size={18} />
             </button>
           </form>
-          <p className="mt-2 text-[10px] text-[#a6adc8]">{aiConfigured ? 'Messages go to the configured AI provider for text assistance; it cannot search or take external actions.' : 'AI is not configured. Set server AI settings to enable assistant replies; demo workflow remains local.'}</p>
+          <p className="mt-2 text-[10px] text-[#a6adc8]">{aiConfigured ? assignmentMode === 'auto' ? 'Ollama routes requests to a C-suite executive; concrete tasks are assigned and run locally. External actions are never taken.' : 'Manual executive selection is active. CJO job searches use the configured live research workflow.' : 'AI is not configured. Set server AI settings to enable automatic routing and assistant replies; demo workflow remains local.'}</p>
         </footer>
       ) : (
         <footer className="flex shrink-0 items-center justify-between border-t border-[#313244] bg-[#11111b] px-4 py-3">
